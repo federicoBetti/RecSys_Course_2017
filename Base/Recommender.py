@@ -11,7 +11,7 @@ import time
 import numpy as np
 
 from Base.metrics import roc_auc, precision, recall, map, ndcg, rr
-#from Base.Cython.metrics import roc_auc, precision, recall, map, ndcg, rr
+# from Base.Cython.metrics import roc_auc, precision, recall, map, ndcg, rr
 from Base.Recommender_utils import check_matrix, areURMequals, removeTopPop
 
 
@@ -30,7 +30,6 @@ class Recommender(object):
         self.filterCustomItems = False
         self.filterCustomItems_ItemsID = np.array([], dtype=np.int)
 
-
     def fit(self):
         pass
 
@@ -38,11 +37,9 @@ class Recommender(object):
         scores[self.filterTopPop_ItemsID] = -np.inf
         return scores
 
-
     def _filterCustomItems_on_scores(self, scores):
         scores[self.filterCustomItems_ItemsID] = -np.inf
         return scores
-
 
     def _filter_seen_on_scores(self, user_id, scores):
 
@@ -51,13 +48,10 @@ class Recommender(object):
         scores[seen] = -np.inf
         return scores
 
-
-
-
     def evaluateRecommendations(self, URM_test_new, at=5, minRatingsPerUser=1, exclude_seen=True,
-                                mode='sequential', filterTopPop = False,
-                                filterCustomItems = np.array([], dtype=np.int),
-                                filterCustomUsers = np.array([], dtype=np.int)):
+                                mode='sequential', filterTopPop=False,
+                                filterCustomItems=np.array([], dtype=np.int),
+                                filterCustomUsers=np.array([], dtype=np.int)):
         """
         Speed info:
         - Sparse weighgs: batch mode is 2x faster than sequential
@@ -82,20 +76,18 @@ class Recommender(object):
             self.filterCustomItems = True
             self.filterCustomItems_ItemsID = np.array(filterCustomItems)
 
-
         if filterTopPop != False:
-
             self.filterTopPop = True
 
-            _,_, self.filterTopPop_ItemsID = removeTopPop(self.URM_train, URM_2 = URM_test_new, percentageToRemove=filterTopPop)
+            _, _, self.filterTopPop_ItemsID = removeTopPop(self.URM_train, URM_2=URM_test_new,
+                                                           percentageToRemove=filterTopPop)
 
-            print("Filtering {}% TopPop items, count is: {}".format(filterTopPop*100, len(self.filterTopPop_ItemsID)))
+            print("Filtering {}% TopPop items, count is: {}".format(filterTopPop * 100, len(self.filterTopPop_ItemsID)))
 
             # Zero-out the items in order to be considered irrelevant
             URM_test_new = check_matrix(URM_test_new, format='lil')
-            URM_test_new[:,self.filterTopPop_ItemsID] = 0
+            URM_test_new[:, self.filterTopPop_ItemsID] = 0
             URM_test_new = check_matrix(URM_test_new, format='csr')
-
 
         # During testing CSR is faster
         self.URM_test = check_matrix(URM_test_new, format='csr')
@@ -103,7 +95,6 @@ class Recommender(object):
         self.at = at
         self.minRatingsPerUser = minRatingsPerUser
         self.exclude_seen = exclude_seen
-
 
         nusers = self.URM_test.shape[0]
 
@@ -119,13 +110,11 @@ class Recommender(object):
 
         usersToEvaluate = list(usersToEvaluate)
 
-
-
-        if mode=='sequential':
+        if mode == 'sequential':
             return self.evaluateRecommendationsSequential(usersToEvaluate)
-        elif mode=='parallel':
+        elif mode == 'parallel':
             return self.evaluateRecommendationsParallel(usersToEvaluate)
-        elif mode=='batch':
+        elif mode == 'batch':
             return self.evaluateRecommendationsBatch(usersToEvaluate)
         # elif mode=='cython':
         #     return self.evaluateRecommendationsCython(usersToEvaluate)
@@ -134,17 +123,13 @@ class Recommender(object):
         else:
             raise ValueError("Mode '{}' not available".format(mode))
 
-
     def get_user_relevant_items(self, user_id):
 
-        return self.URM_test.indices[self.URM_test.indptr[user_id]:self.URM_test.indptr[user_id+1]]
+        return self.URM_test.indices[self.URM_test.indptr[user_id]:self.URM_test.indptr[user_id + 1]]
 
     def get_user_test_ratings(self, user_id):
 
-        return self.URM_test.data[self.URM_test.indptr[user_id]:self.URM_test.indptr[user_id+1]]
-
-
-
+        return self.URM_test.data[self.URM_test.indptr[user_id]:self.URM_test.indptr[user_id + 1]]
 
     def evaluateRecommendationsSequential(self, usersToEvaluate):
 
@@ -163,7 +148,8 @@ class Recommender(object):
             n_eval += 1
 
             recommended_items = self.recommend(user_id=test_user, exclude_seen=self.exclude_seen,
-                                               n=self.at, filterTopPop=self.filterTopPop, filterCustomItems=self.filterCustomItems)
+                                               n=self.at, filterTopPop=self.filterTopPop,
+                                               filterCustomItems=self.filterCustomItems)
 
             is_relevant = np.in1d(recommended_items, relevant_items, assume_unique=True)
 
@@ -173,19 +159,15 @@ class Recommender(object):
             recall_ += recall(is_relevant, relevant_items)
             map_ += map(is_relevant, relevant_items)
             mrr_ += rr(is_relevant)
-            ndcg_ += ndcg(recommended_items, relevant_items, relevance=self.get_user_test_ratings(test_user), at=self.at)
+            ndcg_ += ndcg(recommended_items, relevant_items, relevance=self.get_user_test_ratings(test_user),
+                          at=self.at)
 
-
-
-            if n_eval % 10000 == 0 or n_eval==len(usersToEvaluate)-1:
+            if n_eval % 10000 == 0 or n_eval == len(usersToEvaluate) - 1:
                 print("Processed {} ( {:.2f}% ) in {:.2f} seconds. Users per second: {:.0f}".format(
-                                  n_eval,
-                                  100.0* float(n_eval+1)/len(usersToEvaluate),
-                                  time.time()-start_time,
-                                  float(n_eval)/(time.time()-start_time)))
-
-
-
+                    n_eval,
+                    100.0 * float(n_eval + 1) / len(usersToEvaluate),
+                    time.time() - start_time,
+                    float(n_eval) / (time.time() - start_time)))
 
         if (n_eval > 0):
             roc_auc_ /= n_eval
@@ -209,10 +191,7 @@ class Recommender(object):
 
         return (results_run)
 
-
-
-
-    def evaluateRecommendationsBatch(self, usersToEvaluate, batch_size = 1000):
+    def evaluateRecommendationsBatch(self, usersToEvaluate, batch_size=1000):
 
         roc_auc_, precision_, recall_, map_, mrr_, ndcg_ = 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         n_eval = 0
@@ -220,13 +199,13 @@ class Recommender(object):
         start_time = time.time()
         start_time_batch = time.time()
 
-        #Number of blocks is rounded to the next integer
+        # Number of blocks is rounded to the next integer
         totalNumberOfBatch = int(len(usersToEvaluate) / batch_size) + 1
 
         for current_batch in range(totalNumberOfBatch):
 
-            user_first_id = current_batch*batch_size
-            user_last_id = min((current_batch+1)*batch_size-1,  len(usersToEvaluate)-1)
+            user_first_id = current_batch * batch_size
+            user_last_id = min((current_batch + 1) * batch_size - 1, len(usersToEvaluate) - 1)
 
             users_in_batch = usersToEvaluate[user_first_id:user_last_id]
 
@@ -237,15 +216,13 @@ class Recommender(object):
                                                           n=self.at, filterTopPop=self.filterTopPop,
                                                           filterCustomItems=self.filterCustomItems)
 
-
             for test_user in range(recommended_items_batch.shape[0]):
-
                 n_eval += 1
 
-                current_user = relevant_items_batch[test_user,:]
+                current_user = relevant_items_batch[test_user, :]
 
                 relevant_items = current_user.indices
-                recommended_items = recommended_items_batch[test_user,:]
+                recommended_items = recommended_items_batch[test_user, :]
 
                 is_relevant = np.in1d(recommended_items, relevant_items, assume_unique=True)
 
@@ -257,17 +234,14 @@ class Recommender(object):
                 mrr_ += rr(is_relevant)
                 ndcg_ += ndcg(recommended_items, relevant_items, relevance=current_user.data, at=self.at)
 
-
-
-            if(time.time() - start_time_batch >= 20 or current_batch == totalNumberOfBatch-1):
+            if (time.time() - start_time_batch >= 20 or current_batch == totalNumberOfBatch - 1):
                 print("Processed {} ( {:.2f}% ) in {:.2f} seconds. Users per second: {:.0f}".format(
-                                  n_eval,
-                                  100.0* float(n_eval)/len(usersToEvaluate),
-                                  time.time()-start_time,
-                                  float(n_eval)/(time.time()-start_time)))
+                    n_eval,
+                    100.0 * float(n_eval) / len(usersToEvaluate),
+                    time.time() - start_time,
+                    float(n_eval) / (time.time() - start_time)))
 
                 start_time_batch = time.time()
-
 
         if (n_eval > 0):
             roc_auc_ /= n_eval
@@ -291,12 +265,10 @@ class Recommender(object):
 
         return (results_run)
 
-
-
     def evaluateOneUser(self, test_user):
 
         # Being the URM CSR, the indices are the non-zero column indexes
-        #relevant_items = self.URM_test_relevantItems[test_user]
+        # relevant_items = self.URM_test_relevantItems[test_user]
         relevant_items = self.URM_test[test_user].indices
 
         # this will rank top n items
@@ -315,8 +287,6 @@ class Recommender(object):
         ndcg_ = ndcg(recommended_items, relevant_items, relevance=self.get_user_test_ratings(test_user), at=self.at)
 
         return roc_auc_, precision_, recall_, map_, mrr_, ndcg_
-
-
 
     def evaluateRecommendationsParallel(self, usersToEvaluate):
 
@@ -340,18 +310,16 @@ class Recommender(object):
             mrr_ += result[4]
             ndcg_ += result[5]
 
-
         if (n_eval > 0):
-            roc_auc_ = roc_auc_/n_eval
-            precision_ = precision_/n_eval
-            recall_ = recall_/n_eval
-            map_ = map_/n_eval
-            mrr_ = mrr_/n_eval
-            ndcg_ =  ndcg_/n_eval
+            roc_auc_ = roc_auc_ / n_eval
+            precision_ = precision_ / n_eval
+            recall_ = recall_ / n_eval
+            map_ = map_ / n_eval
+            mrr_ = mrr_ / n_eval
+            ndcg_ = ndcg_ / n_eval
 
         else:
             print("WARNING: No users had a sufficient number of relevant items")
-
 
         print("Evaluated {} users".format(n_eval))
 
@@ -365,6 +333,3 @@ class Recommender(object):
         results["MRR"] = mrr_
 
         return (results)
-
-
-
