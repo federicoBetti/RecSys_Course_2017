@@ -4,6 +4,9 @@ from scipy.sparse import csr_matrix
 
 from KNN.item_knn_CF import ItemKNNCFRecommender
 from KNN.user_knn_CF import UserKNNCFRecommender
+from MatrixFactorization.Cython.MF_BPR_Cython import MF_BPR_Cython
+from SLIM_BPR.Cython.SLIM_BPR_Cython import SLIM_BPR_Cython
+from SLIM_RMSE.SLIM_RMSE import SLIM_RMSE
 from data.Movielens10MReader import Movielens10MReader
 
 
@@ -57,10 +60,10 @@ if __name__ == '__main__':
     recommender_list = []
     recommender_list.append(ItemKNNCFRecommender(URM_train))
     recommender_list.append(UserKNNCFRecommender(URM_train))
-    #recommender_list.append(MF_BPR_Cython(URM_train))
+    recommender_list.append(MF_BPR_Cython(URM_train))
     #recommender_list.append(FunkSVD(URM_train))
-    #recommender_list.append(SLIM_BPR_Cython(URM_train, sparse_weights=False))
-    #recommender_list.append(SLIM_RMSE(URM_train))
+    recommender_list.append(SLIM_BPR_Cython(URM_train, sparse_weights=False))
+    #recommender_list.append(SLIM_R  MSE(URM_train))
 
 
 
